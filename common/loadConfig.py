@@ -3,7 +3,7 @@ import yaml
 
 class Config:
     def __init__(self):
-        with open('common/config.yaml') as f:
+        with open('../common/config.yaml') as f:
             args = yaml.safe_load(f)
             # パス読み込み
             self.method = args['method']
@@ -32,7 +32,11 @@ class Config:
         self.transFamilyPath = os.path.join(self.gpcrPath, 'trans.txt')
 
         # 画像データのパス
+        self.method = self.method + self.aaIndex1 + self.aaIndex2
+        newDir.append(self.method)
         self.methodImagePath = os.path.join(self.dataPath, self.method)
+        newDir.append(self.methodImagePath)
+        self.methodImagePath = os.path.join(self.methodImagePath, str(self.vectorTimes))
         newDir.append(self.methodImagePath)
         self.imageInfoPath = os.path.join(self.methodImagePath, 'imageInfo.csv')
 
@@ -40,12 +44,22 @@ class Config:
         currentDir = os.getcwd()
         self.resultDir = os.path.join(currentDir, 'result')
         newDir.append(self.resultDir)
-        self.methodResultDir = os.path.join(self.resultDir, self.method + '_' + self.aaIndex1 + '_' + self.aaIndex2 + '_' + str(self.vectorTimes))
+        self.methodResultDir = os.path.join(self.resultDir, self.method)
+        newDir.append(self.methodResultDir)
+        self.methodResultDir = os.path.join(self.methodResultDir, str(self.vectorTimes))
         newDir.append(self.methodResultDir)
 
         for dirName in newDir:
             if not os.path.exists(dirName):
                 os.mkdir(dirName)
 
+    def logConfig(self):
+        print("method:", self.method)
+        print("aaindex1:", self.aaIndex1)
+        print("aaindex2:", self.aaIndex2)
+        print("methodImagePath:", self.methodImagePath)
+        print("methodResultDir:", self.methodResultDir )
+
 if __name__ == '__main__':
     config = Config()
+    config.logConfig()

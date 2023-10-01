@@ -1,9 +1,9 @@
-method: half
+method: halfRepeated
 dataPath: /home/mizuno/data/
 FIGSIZE: 256
-vectorTimes: 4
-aaindex1: GOLD730101
-aaindex2: EISD860103
+vectorTimes: 2
+aaindex1: PUNT030102
+aaindex2: QIAN880126
 learningRate: 0.0005
 dropoutRatio: 0.5
 epochs: 150

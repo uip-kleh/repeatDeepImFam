@@ -21,6 +21,9 @@ class DeepImFam(Config, ImageDataFrameGenerator, SaveResult):
         ImageDataFrameGenerator.__init__(self, imageDataDir=self.methodImagePath)
         SaveResult.__init__(self)
 
+        self.logConfig()
+        isContinue = input('if you wanna continue, enter:')
+
     # GPCRデータセットを読み込む
     def loadAASquences(self):
         sequences = []
@@ -61,7 +64,7 @@ class DeepImFam(Config, ImageDataFrameGenerator, SaveResult):
                 (aaIndex1[key] - aaIndex1Mean) / aaIndex1Std * self.vectorTimes,
                 (aaIndex2[key] - aaIndex2Mean) / aaIndex2Std * self.vectorTimes
             ])
-        print(self.aaVector)
+        # print(self.aaVector)
 
     def translateFamily(self):
         self.familyDict = {}
