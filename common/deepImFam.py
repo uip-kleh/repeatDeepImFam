@@ -78,6 +78,17 @@ class DeepImFam(Config, ImageDataFrameGenerator, SaveResult):
                 self.subFamilyDict[key] = subFamily
                 self.subSubFamilyDict[key] = subSubFamily
 
+    def calcVertocalStatus1(self, x0, y0, x1, y1, x2):
+        y2 = (y1 - y0) / (x1 - x0) * (x2 - x0) + y0
+        return y2
+
+    def calcHorizentalStatus1(self, x0, y0, x1, y1, y2):
+        x2 = (x1 - x0) / (y1 - y0) * (y2 - y0) + x0
+        return x2
+
+    def crossZComponent(self, v0x, v0y, v1x, v1y):
+        return v0x * v1y - v0y * v1x
+
     # アミノ酸配列を用いた画像を生成する
     def generateImages(self):
         sequences, keys = self.loadAASquences()
@@ -88,18 +99,19 @@ class DeepImFam(Config, ImageDataFrameGenerator, SaveResult):
         # self.plotSequce(sequences[0])
 
         for findex, (sequence, key) in enumerate(zip(sequences, keys)):
-            x = self.FIGSIZE / 2
-            y = self.FIGSIZE / 2
+            x = 0
+            y = 0
             xPoints = [x]
             yPoints = [y]
             fig = plt.figure(figsize=(self.FIGSIZE/100, self.FIGSIZE/100))
             plt.style.use('classic')
             plt.axis('off')
 
+            # plt.plot([-self.FIGSIZE/2., self.FIGSIZE/2.], [0, 0])
+            # plt.plot([0, 0], [-self.FIGSIZE/2., self.FIGSIZE/2.])
+
             sequence = sequence.replace('_', '')
-            # print(sequence)
             n = len(sequence)
-            # print(n)
             for i, c in enumerate(sequence):
                 if not c in self.aaVector: continue
                 grayScale = str(1 - i/n)
@@ -108,32 +120,174 @@ class DeepImFam(Config, ImageDataFrameGenerator, SaveResult):
                 x += self.aaVector[c][0]
                 y += self.aaVector[c][1]
 
-                # 周期的境界の実装
-                if x < 0:
-                    bufx += self.FIGSIZE / 2
-                    x += self.FIGSIZE / 2
-                if x > self.FIGSIZE:
-                    bufx -= self.FIGSIZE / 2
-                    x -= self.FIGSIZE / 2
-                if y < 0:
-                    bufy += self.FIGSIZE / 2
-                    y += self.FIGSIZE / 2
-                if y > self.FIGSIZE:
-                    bufy -= self.FIGSIZE / 2
-                    y -= self.FIGSIZE / 2
+                # 座標位置を算出
+                status = 0
+                if x < -self.FIGSIZE/2.:
+                    status += (1 << 0)
+                if x > self.FIGSIZE/2.:
+                    status += (1 << 1)
+                if y < -self.FIGSIZE/2.:
+                    status += (1 << 2)
+                if y > self.FIGSIZE/2.:
+                    status += (1 << 3)
 
-                # print(i, n, grayScale)
-
-                plt.plot([bufx, x], [bufy, y], color=grayScale, linewidth=.6)
+                # print("now", [bufx, bufy], [x, y])
+                # print(status)
+                # 位置に応じた処理
+                if status == 0:
+                    plt.plot([bufx, x], [bufy, y], color=grayScale, linewidth=.6)
+                if status == 1:
+                    # 処理
+                    plt.plot([bufx, x], [bufy, y], color=grayScale, linewidth=.6)
+                    x2 = -self.FIGSIZE/2.
+                    y2 = self.calcVertocalStatus1(bufx, bufy, x, y, x2)
+                    x2 = 0
+                    x += self.FIGSIZE/2.
+                    plt.plot([x2, x], [y2, y], color=grayScale, linewidth=.6)
+                if status == 2:
+                    # 処理
+                    plt.plot([bufx, x], [bufy, y], color=grayScale, linewidth=.6)
+                    x2 = self.FIGSIZE/2.
+                    y2 = self.calcVertocalStatus1(bufx, bufy, x, y, x2)
+                    x2 = 0
+                    x -= self.FIGSIZE/2.
+                    plt.plot([x2, x], [y2, y], color=grayScale, linewidth=.6)
+                if status == 4:
+                    # 処理
+                    plt.plot([bufx, x], [bufy, y], color=grayScale, linewidth=.6)
+                    y2 = -self.FIGSIZE/2.
+                    x2 = self.calcHorizentalStatus1(bufx, bufy, x, y, y2)
+                    y2 = 0
+                    y += self.FIGSIZE/2.
+                    plt.plot([x2, x], [y2, y], color=grayScale, linewidth=.6)
+                if status == 5:
+                    # 処理
+                    plt.plot([bufx, x], [bufy, y], color=grayScale, linewidth=.6)
+                    v0x, v0y = -self.FIGSIZE/2. - x, -self.FIGSIZE/2. - y
+                    v1x, v1y = bufx - x, bufy - y
+                    z = self.crossZComponent(v0x, v0y, v1x, v1y)
+                    if z >= 0:
+                        y2 = -self.FIGSIZE/2.
+                        x2 = self.calcHorizentalStatus1(bufx, bufy, x, y, y2)
+                        y2 = 0
+                        y += self.FIGSIZE/2.
+                        plt.plot([x2, x], [y2, y], color=grayScale, linewidth=.6)
+                        x2 = -self.FIGSIZE/2.
+                        y2 = self.calcVertocalStatus1(bufx, bufy, x, y, x2)
+                        x2 = 0
+                        x += self.FIGSIZE/2.
+                        plt.plot([x2, x], [y2, y], color=grayScale, linewidth=.6)
+                    else:
+                        x2 = -self.FIGSIZE/2.
+                        y2 = self.calcVertocalStatus1(bufx, bufy, x, y, x2)
+                        x2 = 0
+                        x += self.FIGSIZE/2.
+                        plt.plot([x2, x], [y2, y], color=grayScale, linewidth=.6)
+                        y2 = -self.FIGSIZE/2.
+                        x2 = self.calcHorizentalStatus1(bufx, bufy, x, y, y2)
+                        y2 = 0
+                        y += self.FIGSIZE/2.
+                        plt.plot([x2, x], [y2, y], color=grayScale, linewidth=.6)
+                if status == 6:
+                    # 処理
+                    plt.plot([bufx, x], [bufy, y], color=grayScale, linewidth=.6)
+                    v0x, v0y = self.FIGSIZE/2. - x, -self.FIGSIZE/2. - y
+                    v1x, v1y = bufx - x, bufy - y
+                    z = self.crossZComponent(v0x, v0y, v1x, v1y)
+                    if z >= 0:
+                        x2 = -self.FIGSIZE/2.
+                        y2 = self.calcVertocalStatus1(bufx, bufy, x, y, x2)
+                        x2 = 0
+                        x += self.FIGSIZE/2.
+                        plt.plot([x2, x], [y2, y], color=grayScale, linewidth=.6)
+                        y2 = -self.FIGSIZE/2.
+                        x2 = self.calcHorizentalStatus1(bufx, bufy, x, y, y2)
+                        y2 = 0
+                        y += self.FIGSIZE/2.
+                        plt.plot([x2, x], [y2, y], color=grayScale, linewidth=.6)
+                    else:
+                        y2 = -self.FIGSIZE/2.
+                        x2 = self.calcHorizentalStatus1(bufx, bufy, x, y, y2)
+                        y2 = 0
+                        y += self.FIGSIZE/2.
+                        plt.plot([x2, x], [y2, y], color=grayScale, linewidth=.6)
+                        x2 = -self.FIGSIZE/2.
+                        y2 = self.calcVertocalStatus1(bufx, bufy, x, y, x2)
+                        x2 = 0
+                        x += self.FIGSIZE/2.
+                        plt.plot([x2, x], [y2, y], color=grayScale, linewidth=.6)
+                if status == 8:
+                    # 処理
+                    plt.plot([bufx, x], [bufy, y], color=grayScale, linewidth=.6)
+                    y2 = self.FIGSIZE/2.
+                    x2 = self.calcHorizentalStatus1(bufx, bufy, x, y, y2)
+                    y2 = 0
+                    y -= self.FIGSIZE/2.
+                    plt.plot([x2, x], [y2, y], color=grayScale, linewidth=.6)
+                if status == 9:
+                    # 処理
+                    plt.plot([bufx, x], [bufy, y], color=grayScale, linewidth=.6)
+                    v0x, v0y = -self.FIGSIZE/2. - x, self.FIGSIZE/2. - y
+                    v1x, v1y = bufx - x, bufy - y
+                    z = self.crossZComponent(v0x, v0y, v1x, v1y)
+                    if z >= 0:
+                        x2 = -self.FIGSIZE/2.
+                        y2 = self.calcVertocalStatus1(bufx, bufy, x, y, x2)
+                        x2 = 0
+                        x += self.FIGSIZE/2.
+                        plt.plot([x2, x], [y2, y], color=grayScale, linewidth=.6)
+                        y2 = self.FIGSIZE/2.
+                        x2 = self.calcHorizentalStatus1(bufx, bufy, x, y, y2)
+                        y2 = 0
+                        y -= self.FIGSIZE/2.
+                        plt.plot([x2, x], [y2, y], color=grayScale, linewidth=.6)
+                    else:
+                        y2 = self.FIGSIZE/2.
+                        x2 = self.calcHorizentalStatus1(bufx, bufy, x, y, y2)
+                        y2 = 0
+                        y -= self.FIGSIZE/2.
+                        plt.plot([x2, x], [y2, y], color=grayScale, linewidth=.6)
+                        x2 = -self.FIGSIZE/2.
+                        y2 = self.calcVertocalStatus1(bufx, bufy, x, y, x2)
+                        x2 = 0
+                        x += self.FIGSIZE/2.
+                        plt.plot([x2, x], [y2, y], color=grayScale, linewidth=.6)
+                if status == 10:
+                    # 処理
+                    plt.plot([bufx, x], [bufy, y], color=grayScale, linewidth=.6)
+                    v0x, v0y = self.FIGSIZE/2. - x, self.FIGSIZE/2. - y
+                    v1x, v1y = bufx - x, bufy - y
+                    z = self.crossZComponent(v0x, v0y, v1x, v1y)
+                    if z >= 0:
+                        y2 = self.FIGSIZE/2.
+                        x2 = self.calcHorizentalStatus1(bufx, bufy, x, y, y2)
+                        y2 = 0
+                        y -= self.FIGSIZE/2.
+                        plt.plot([x2, x], [y2, y], color=grayScale, linewidth=.6)
+                        x2 = self.FIGSIZE/2.
+                        y2 = self.calcVertocalStatus1(bufx, bufy, x, y, x2)
+                        x2 = 0
+                        x -= self.FIGSIZE/2.
+                        plt.plot([x2, x], [y2, y], color=grayScale, linewidth=.6)
+                    else:
+                        x2 = self.FIGSIZE/2.
+                        y2 = self.calcVertocalStatus1(bufx, bufy, x, y, x2)
+                        x2 = 0
+                        x -= self.FIGSIZE/2.
+                        plt.plot([x2, x], [y2, y], color=grayScale, linewidth=.6)
+                        y2 = self.FIGSIZE/2.
+                        x2 = self.calcHorizentalStatus1(bufx, bufy, x, y, y2)
+                        y2 = 0
+                        y -= self.FIGSIZE/2.
+                        plt.plot([x2, x], [y2, y], color=grayScale, linewidth=.6)
 
                 xPoints.append(x)
                 yPoints.append(y)
 
-            plt.xlim([0, self.FIGSIZE])
-            plt.ylim([0, self.FIGSIZE])
+            plt.xlim([-self.FIGSIZE/2., self.FIGSIZE/2.])
+            plt.ylim([-self.FIGSIZE/2, self.FIGSIZE/2.])
             fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
 
-            # plt.show()
             fname = os.path.join(self.methodImagePath, str(findex) + '.png')
 
             imageInfo = {}
@@ -143,13 +297,14 @@ class DeepImFam(Config, ImageDataFrameGenerator, SaveResult):
             imageInfo['imagePath'] = fname
             imagesInfo.append(imageInfo)
 
-            plt.savefig(fname)
+            plt.show()
+            # plt.savefig(fname)
             plt.cla()
             plt.clf()
             plt.close()
             # break
         df = pd.DataFrame(data=imagesInfo)
-        df.to_csv(self.imageInfoPath)
+        # df.to_csv(self.imageInfoPath)
 
     # 学習
 
